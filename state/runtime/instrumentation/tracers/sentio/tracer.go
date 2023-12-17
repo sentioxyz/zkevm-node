@@ -329,6 +329,18 @@ func (t *sentioTracer) CaptureState(pc uint64, op fakevm.OpCode, gas, cost uint6
 		call.To = &to
 		call.Value = (*hexutil.Big)(scope.Stack.Back(2).ToBig())
 
+		v, _ := uint256.FromBig(call.Value.ToInt())
+		if !v.IsZero() {
+			// can transfer here is nil
+			//!t.env.Context.CanTransfer(t.env.StateDB, from, v.ToBig())
+			println("transfer", from.String(), "to", to.String(), "value", v.ToBig().String())
+			if t.env.StateDB.GetBalance(from).Cmp(v.ToBig()) < 0 {
+				if call.Error == "" {
+					call.Error = "insufficient funds for transfer"
+				}
+			}
+		}
+
 		// Treat this call as pure transfer until it enters the CaptureEnter
 		t.callstack[len(t.callstack)-1].Traces = append(t.callstack[len(t.callstack)-1].Traces, call)
 	case fakevm.CREATE, fakevm.CREATE2, fakevm.DELEGATECALL, fakevm.STATICCALL, fakevm.SELFDESTRUCT:
