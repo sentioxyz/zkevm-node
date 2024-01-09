@@ -380,35 +380,6 @@ func (e *DebugEndpoints) getBlockByArg(ctx context.Context, blockArg *types.Bloc
 	return block, nil
 }
 
-// GetBlockByHash returns information about a block by hash
-func (e *DebugEndpoints) GetBlockByHash(hash types.ArgHash, fullTx bool) (interface{}, types.Error) {
-	return e.txMan.NewDbTxScope(e.state, func(ctx context.Context, dbTx pgx.Tx) (interface{}, types.Error) {
-		block, err := e.state.GetL2BlockByHash(ctx, hash.Hash(), dbTx)
-		if errors.Is(err, state.ErrNotFound) {
-			return nil, nil
-		} else if err != nil {
-			return RPCErrorResponse(types.DefaultErrorCode, "failed to get block by hash from state", err, true)
-		}
-
-		txs := block.Transactions()
-		receipts := make([]ethTypes.Receipt, 0, len(txs))
-		for _, tx := range txs {
-			receipt, err := e.state.GetTransactionReceipt(ctx, tx.Hash(), dbTx)
-			if err != nil {
-				return RPCErrorResponse(types.DefaultErrorCode, fmt.Sprintf("couldn't load receipt for tx %v", tx.Hash().String()), err, true)
-			}
-			receipts = append(receipts, *receipt)
-		}
-
-		rpcBlock, err := types.NewBlock(block, receipts, fullTx, false)
-		if err != nil {
-			return RPCErrorResponse(types.DefaultErrorCode, fmt.Sprintf("couldn't build block response for block by hash %v", hash.Hash()), err, true)
-		}
-
-		return rpcBlock, nil
-	})
-}
-
 func (d *DebugEndpoints) TraceCallMany(bundles []*Bundle, simulateContext *StateContext, cfg *traceConfig) (interface{}, types.Error) {
 	return d.txMan.NewDbTxScope(d.state, func(ctx context.Context, dbTx pgx.Tx) (interface{}, types.Error) {
 		block, err := d.getBlockByArg(ctx, simulateContext.BlockNumber, dbTx)
@@ -424,7 +395,7 @@ func (d *DebugEndpoints) TraceCallMany(bundles []*Bundle, simulateContext *State
 
 			var sender common.Address
 			for _, txArg := range bundle.Transactions {
-				defaultSenderAddress := common.HexToAddress(DefaultSenderAddress)
+				defaultSenderAddress := common.HexToAddress(state.DefaultSenderAddress)
 				senderAddress, tx, err := txArg.ToTransaction(ctx, d.state, d.cfg.MaxCumulativeGasUsed, block.Root(), defaultSenderAddress, dbTx)
 				sender = senderAddress
 				if err != nil {
@@ -450,7 +421,7 @@ func (d *DebugEndpoints) buildTraceCallMany(ctx context.Context, blockNumber uin
 	for _, tx := range txs {
 		traceTransaction, err := d.buildTraceCall(ctx, blockNumber, sender, tx, cfg, dbTx)
 		if err != nil {
-			errMsg := fmt.Sprintf("failed to get trace for simulation %v", tx.Hash().String())
+			errMsg := fmt.Sprintf("failed to get trace for tracecall %v, %s", tx.Hash().String(), err.Error())
 			return RPCErrorResponse(types.DefaultErrorCode, errMsg, err, true)
 		}
 		traces = append(traces, traceTransaction)

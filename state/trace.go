@@ -815,6 +815,13 @@ func (s *State) TraceCall(ctx context.Context, blockNumber uint64, sender common
 		Err:           response.RomError,
 	}
 
+	if result.Err != nil && errors.Is(result.Err, runtime.ErrOutOfCountersStep) {
+		result.Err = fmt.Errorf("%v. arith: %d, memAlign: %d, binary: %d, keccakF: %d, poseidonG: %d, paddingPG %d",
+			result.Err, processBatchResponse.CntArithmetics, processBatchResponse.CntMemAligns,
+			processBatchResponse.CntBinaries, processBatchResponse.CntKeccakHashes, processBatchResponse.CntPoseidonHashes,
+			processBatchResponse.CntPoseidonPaddings)
+	}
+
 	//senderAddress, err := GetSender(*tx)
 	//if err != nil {
 	//	return nil, err
