@@ -3,5 +3,5 @@
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
 make build-docker
-docker tag zkevm-node:latest ${SENTIO_DOCKER_REPO}/zkevm-node:develop
-docker push ${SENTIO_DOCKER_REPO}/zkevm-node:develop
+docker tag zkevm-node:latest ${SENTIO_DOCKER_REPO}/cdk-validium-node:v0.5.12-CDK2
+docker push ${SENTIO_DOCKER_REPO}/cdk-validium-node:v0.5.12-CDK2
