@@ -325,6 +325,7 @@ func (t *sentioTracer) CaptureState(pc uint64, op fakevm.OpCode, gas, cost uint6
 		call.Gas = math.HexOrDecimal64(scope.Stack.Back(0).Uint64())
 		from := scope.Contract.Address()
 		call.From = &from
+		call.CodeAddress = scope.Contract.CodeAddr
 		to := common.BigToAddress(scope.Stack.Back(1).ToBig())
 		call.To = &to
 		call.Value = (*hexutil.Big)(scope.Stack.Back(2).ToBig())
@@ -370,9 +371,10 @@ func (t *sentioTracer) CaptureState(pc uint64, op fakevm.OpCode, gas, cost uint6
 			break
 		}
 		from := scope.Contract.CodeAddr
-
+		codeAddress := scope.Contract.CodeAddr
 		jump := mergeBase(Trace{
-			From: from,
+			From:        from,
+			CodeAddress: codeAddress,
 			//InputStack: append([]uint256.Int(nil), scope.Stack.Data...), // TODO only need partial
 		})
 		if t.previousJump != nil {
